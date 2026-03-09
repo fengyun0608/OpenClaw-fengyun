@@ -79,7 +79,7 @@ export class XRKBridgeForward extends plugin {
     };
 
     BotUtil.makeLog('info', `[XRK-Bridge-Forward] 转发${isPrivate ? '私聊' : '艾特'}消息 user=${payload.userId} group=${payload.groupId} text=${cleanText?.slice(0, 30)} files=${files.length}`, 'XRK-Bridge');
-
+    
     if (isGroup && e.group_id && e.user_id) {
       try {
         const group = Bot.pickGroup(String(e.group_id));
