@@ -79,7 +79,18 @@ export class XRKBridgeForward extends plugin {
     };
 
     BotUtil.makeLog('info', `[XRK-Bridge-Forward] 转发${isPrivate ? '私聊' : '艾特'}消息 user=${payload.userId} group=${payload.groupId} text=${cleanText?.slice(0, 30)} files=${files.length}`, 'XRK-Bridge');
-    
+
+    if (isGroup && e.group_id && e.user_id) {
+      try {
+        const group = Bot.pickGroup(String(e.group_id));
+        if (group && group.pokeMember) {
+          await group.pokeMember(String(e.user_id));
+        }
+      } catch (err) {
+        BotUtil.makeLog('debug', `[XRK-Bridge-Forward] 戳一戳失败: ${err.message}`, 'XRK-Bridge');
+      }
+    }
+
     const sent = sendToBridge(payload);
     return sent > 0;
   }
