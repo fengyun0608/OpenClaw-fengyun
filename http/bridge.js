@@ -4,14 +4,23 @@ import BotUtil from '../../../lib/util.js'
 
 const XRK_BRIDGE_PATH = '/XrkBridge'
 const connections = new Map()
-const sentMessages = new Set()
+const sentMessages = new Map()
 const MESSAGE_EXPIRE = 10000
 
 function isDuplicate(to, text) {
-  const key = `${to.kind}:${to.userId}:${to.groupId || 'none'}:${text?.slice(0, 100)}`
-  if (sentMessages.has(key)) return true
-  sentMessages.add(key)
-  setTimeout(() => sentMessages.delete(key), MESSAGE_EXPIRE)
+  const key = `${to.kind}:${to.userId}:${to.groupId || 'none'}`
+  const now = Date.now()
+  const lastText = sentMessages.get(key)
+  if (lastText && lastText.text === text && (now - lastText.time) < MESSAGE_EXPIRE) {
+    return true
+  }
+  sentMessages.set(key, { text, time: now })
+  setTimeout(() => {
+    const current = sentMessages.get(key)
+    if (current && current.time === now) {
+      sentMessages.delete(key)
+    }
+  }, MESSAGE_EXPIRE)
   return false
 }
 

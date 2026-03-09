@@ -108,7 +108,7 @@ OpenClaw-fengyun/
 
 感谢以下项目的开发者：
 
-- [TimeRainStarSky](https://gitcode.com/Xrkseek) - XRK-Yunzai 作者
+- [TimeRainStarSky](https://github.com/TimeRainStarSky) - XRK-Yunzai 作者
 - [Clawdbot Team](https://github.com/clawdbot) - OpenClaw 开发团队
 - [sunflowermm](https://github.com/sunflowermm) - OpenClaw-xrk-bridger 作者
 

@@ -1,13 +1,15 @@
 import plugin from '../../../lib/plugins/plugin.js';
 import BotUtil from '../../../lib/util.js';
 
+BotUtil.makeLog('info', '[XRK-Bridge-Forward] 消息转发插件已加载', 'XRK-Bridge');
+
 export class XRKBridgeForward extends plugin {
   constructor() {
     super({
       name: 'XRK-Bridge-Forward',
       dsc: '转发艾特/私聊消息到 OpenClaw，支持图片等多媒体',
       event: 'message',
-      priority: 9998,
+      priority: 1,
       rule: [
         { reg: '.*', fnc: 'handleMessage', log: false }
       ]
@@ -79,7 +81,7 @@ export class XRKBridgeForward extends plugin {
     };
 
     BotUtil.makeLog('info', `[XRK-Bridge-Forward] 转发${isPrivate ? '私聊' : '艾特'}消息 user=${payload.userId} group=${payload.groupId} text=${cleanText?.slice(0, 30)} files=${files.length}`, 'XRK-Bridge');
-    
+
     if (isGroup && e.group_id && e.user_id) {
       try {
         const group = Bot.pickGroup(String(e.group_id));
