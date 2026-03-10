@@ -14,6 +14,16 @@
 
 ---
 
+## 🚀 快速开始
+
+> **请按照这个 SKILL.md 帮我完成 OpenClaw-fengyun 的部署：**
+> 
+> 📖 [查看完整部署指南 SKILL.md](./SKILL.md)
+> 
+> 🔗 在线访问：https://github.com/fengyun0608/OpenClaw-fengyun/blob/main/SKILL.md
+
+---
+
 ## 📦 基于
 
 本项目基于以下开源项目开发：
@@ -30,6 +40,7 @@
 - 🖼️ **多媒体支持** - 支持图片、视频、音频、文件等多媒体消息
 - 🔌 **WebSocket 通信** - 基于 WebSocket 的双向实时通信
 - 🧹 **错误过滤** - 自动过滤 OpenClaw 端的错误消息，保持聊天清爽
+- 🔐 **授权系统** - 支持主人授权用户管理
 
 ## 📥 安装
 
@@ -72,6 +83,7 @@ OpenClaw-fengyun/
 │   └── bridge.js     # WebSocket 桥接服务
 ├── LICENSE           # 开源许可证
 ├── README.md         # 说明文档
+├── SKILL.md          # 部署指南
 └── CHANGELOG.md      # 更新日志
 ```
 
