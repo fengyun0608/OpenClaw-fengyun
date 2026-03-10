@@ -13,6 +13,14 @@ if (fs.existsSync(appsDir)) {
     ret.push(import(`./apps/${file}`))
   })
   ret = await Promise.allSettled(ret)
+  
+  for (const r of ret) {
+    if (r.status === 'rejected') {
+      console.error('[OpenClaw-fengyun] 加载插件失败:', r.reason)
+    }
+  }
+} else {
+  console.error('[OpenClaw-fengyun] apps目录不存在:', appsDir)
 }
 
 let apps = {}
