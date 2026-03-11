@@ -1,5 +1,30 @@
 # 更新日志 (CHANGELOG)
 
+## [1.3.1] - 2026-03-12
+
+### 新增
+- **增强文件类型识别**：大幅扩展二进制文件的魔数识别支持
+  - 图片：jpg, jpeg, png, gif, bmp, webp, ico, tiff, svg
+  - 文档：pdf, doc, docx, pptx, xlsx
+  - 音频：mp3, wav, m4a, ogg, flac, amr, aac, mid
+  - 视频：mp4, mkv, mov, avi, wmv, flv, 3gp
+  - 压缩：zip, rar, 7z, gz, bz2, xz
+  - 可执行：exe, msi, elf, class, apk, dex
+  - 数据库：sqlite
+  - 镜像：iso, vmdk
+  - 设计：psd, ai, cdr, eps
+  - 证书：crt, pem
+  - 其他：dns, mpc, mtd
+
+### 优化
+- **PPTX/DOCX/XLSX 区分**：通过解析 ZIP 内容准确区分 Office 文档类型
+- **MP4 格式识别**：支持多种 ftyp 格式（isom, mp41, mp42, avc1, MSNV 等）
+- **纯文本文件跳过**：txt, md, json, xml, html 等纯文本文件不做魔数识别，保持原样
+
+### 修复
+- 修复 PPTX 文件被误识别为 ZIP 的问题
+- 修复 base64 URL 解析时字节长度不足的问题
+
 ## [1.3.0] - 2026-03-12
 
 ### 新增

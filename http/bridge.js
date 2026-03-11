@@ -129,13 +129,13 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
       if (!url) continue
       
       const isBase64 = url.startsWith('base64://')
-      let isImage = IMAGE_EXTS.some(ext => url.toLowerCase().includes(ext))
-      let fileExt = '.txt'
+      let isImage = false
+      let fileExt = '.bin'
       
       if (isBase64) {
         try {
           const base64Data = url.replace(/^base64:\/\//i, '')
-          const firstBytes = Buffer.from(base64Data.slice(0, 32), 'base64')
+          const firstBytes = Buffer.from(base64Data.slice(0, 16), 'base64')
           
           if (firstBytes[0] === 0xFF && firstBytes[1] === 0xD8) {
             isImage = true
@@ -155,49 +155,56 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
           } else if (firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0x01 && firstBytes[3] === 0x00) {
             isImage = true
             fileExt = '.ico'
-          } else if (firstBytes[0] === 0x49 && firstBytes[1] === 0x49 && firstBytes[2] === 0x2A && firstBytes[3] === 0x00) {
-            isImage = true
-            fileExt = '.tiff'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x4D && firstBytes[2] === 0x00 && firstBytes[3] === 0x2A) {
+          } else if ((firstBytes[0] === 0x49 && firstBytes[1] === 0x49 && firstBytes[2] === 0x2A && firstBytes[3] === 0x00) || (firstBytes[0] === 0x4D && firstBytes[1] === 0x4D && firstBytes[2] === 0x00 && firstBytes[3] === 0x2A)) {
             isImage = true
             fileExt = '.tiff'
           } else if (firstBytes[0] === 0x50 && firstBytes[1] === 0x4B && firstBytes[2] === 0x03 && firstBytes[3] === 0x04) {
-            fileExt = '.zip'
-          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x61 && firstBytes[2] === 0x72 && firstBytes[3] === 0x21) {
-            fileExt = '.rar'
-          } else if (firstBytes[0] === 0x37 && firstBytes[1] === 0x7A && firstBytes[2] === 0xBC && firstBytes[3] === 0xAF) {
-            fileExt = '.7z'
-          } else if (firstBytes[0] === 0x1F && firstBytes[1] === 0x8B) {
-            fileExt = '.gz'
-          } else if (firstBytes[257] === 0x75 && firstBytes[258] === 0x73 && firstBytes[259] === 0x74 && firstBytes[260] === 0x61) {
-            fileExt = '.tar'
+            const decoded = Buffer.from(base64Data, 'base64').toString('utf8')
+            if (decoded.includes('ppt/') || decoded.includes('presentation')) {
+              fileExt = '.pptx'
+            } else if (decoded.includes('word/') || decoded.includes('document.xml')) {
+              fileExt = '.docx'
+            } else if (decoded.includes('xl/') || decoded.includes('workbook.xml')) {
+              fileExt = '.xlsx'
+            } else if (decoded.includes('[Content_Types]')) {
+              fileExt = '.pptx'
+            } else {
+              fileExt = '.zip'
+            }
           } else if (firstBytes[0] === 0x25 && firstBytes[1] === 0x50 && firstBytes[2] === 0x44 && firstBytes[3] === 0x46) {
             fileExt = '.pdf'
           } else if (firstBytes[0] === 0xD0 && firstBytes[1] === 0xCF && firstBytes[2] === 0x11 && firstBytes[3] === 0xE0) {
             fileExt = '.doc'
-          } else if (firstBytes[0] === 0x50 && firstBytes[1] === 0x4B && firstBytes[2] === 0x03 && firstBytes[3] === 0x04) {
-            fileExt = '.docx'
           } else if (firstBytes[4] === 0x66 && firstBytes[5] === 0x74 && firstBytes[6] === 0x79 && firstBytes[7] === 0x70) {
-            if (firstBytes[8] === 0x4D && firstBytes[9] === 0x34 && firstBytes[10] === 0x41) {
+            const ftyp = String.fromCharCode(firstBytes[8], firstBytes[9], firstBytes[10], firstBytes[11])
+            if (ftyp === 'M4A ' || ftyp === 'M4B ' || ftyp === 'fmp4') {
               fileExt = '.m4a'
-            } else if (firstBytes[8] === 0x69 && firstBytes[9] === 0x73 && firstBytes[10] === 0x6F) {
+            } else if (ftyp === 'isom' || ftyp === 'mp41' || ftyp === 'mp42' || ftyp === 'avc1') {
               fileExt = '.mp4'
-            } else if (firstBytes[8] === 0x4D && firstBytes[9] === 0x53 && firstBytes[10] === 0x4E && firstBytes[11] === 0x56) {
+            } else if (ftyp === 'MSNV' || ftyp === 'NVMP') {
               fileExt = '.mp4'
-            } else if (firstBytes[8] === 0x66 && firstBytes[9] === 0x74 && firstBytes[10] === 0x79 && firstBytes[11] === 0x70) {
+            } else if (ftyp === 'qt  ') {
               fileExt = '.mov'
+            } else if (ftyp === '3gp' || ftyp === '3g2') {
+              fileExt = '.3gp'
             } else {
               fileExt = '.mp4'
             }
           } else if (firstBytes[0] === 0x1A && firstBytes[1] === 0x45 && firstBytes[2] === 0xDF && firstBytes[3] === 0xA3) {
             fileExt = '.mkv'
-          } else if (firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0x00 && (firstBytes[3] === 0x14 || firstBytes[3] === 0x18 || firstBytes[3] === 0x1C)) {
+          } else if (firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0x00 && (firstBytes[3] >= 0x14 && firstBytes[3] <= 0x20) && firstBytes[4] === 0x66 && firstBytes[5] === 0x74 && firstBytes[6] === 0x79 && firstBytes[7] === 0x70) {
             fileExt = '.mp4'
+          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x56 && firstBytes[2] === 0x49) {
+            fileExt = '.avi'
+          } else if (firstBytes[0] === 0x30 && firstBytes[1] === 0x26 && firstBytes[2] === 0xB2 && firstBytes[3] === 0x75) {
+            fileExt = '.wmv'
+          } else if (firstBytes[0] === 0x66 && firstBytes[1] === 0x6C && firstBytes[2] === 0x76) {
+            fileExt = '.flv'
           } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x57 && firstBytes[9] === 0x41 && firstBytes[10] === 0x56 && firstBytes[11] === 0x45) {
             fileExt = '.wav'
           } else if (firstBytes[0] === 0x49 && firstBytes[1] === 0x44 && firstBytes[2] === 0x33) {
             fileExt = '.mp3'
-          } else if (firstBytes[0] === 0xFF && (firstBytes[1] === 0xFB || firstBytes[1] === 0xFA || firstBytes[1] === 0xF3 || firstBytes[1] === 0xF2)) {
+          } else if ((firstBytes[0] === 0xFF && (firstBytes[1] & 0xE0) === 0xE0)) {
             fileExt = '.mp3'
           } else if (firstBytes[0] === 0x4F && firstBytes[1] === 0x67 && firstBytes[2] === 0x67) {
             fileExt = '.ogg'
@@ -205,97 +212,72 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
             fileExt = '.flac'
           } else if (firstBytes[0] === 0x21 && firstBytes[1] === 0x23 && firstBytes[2] === 0x41 && firstBytes[3] === 0x4D && firstBytes[4] === 0x52) {
             fileExt = '.amr'
+          } else if (firstBytes[0] === 0xFF && firstBytes[1] === 0xF1 || firstBytes[0] === 0xFF && firstBytes[1] === 0xF9) {
+            fileExt = '.aac'
+          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x61 && firstBytes[2] === 0x72 && firstBytes[3] === 0x21) {
+            fileExt = '.rar'
+          } else if (firstBytes[0] === 0x37 && firstBytes[1] === 0x7A && firstBytes[2] === 0xBC && firstBytes[3] === 0xAF) {
+            fileExt = '.7z'
+          } else if (firstBytes[0] === 0x1F && firstBytes[1] === 0x8B) {
+            fileExt = '.gz'
+          } else if (firstBytes[0] === 0x42 && firstBytes[1] === 0x5A && firstBytes[2] === 0x68) {
+            fileExt = '.bz2'
+          } else if (firstBytes[0] === 0xFD && firstBytes[1] === 0x37 && firstBytes[2] === 0x7A && firstBytes[3] === 0x58 && firstBytes[4] === 0x5A && firstBytes[5] === 0x00) {
+            fileExt = '.xz'
+          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x53 && firstBytes[2] === 0x57 && firstBytes[3] === 0x49 && firstBytes[4] === 0x4D) {
+            fileExt = '.msi'
           } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x5A) {
             fileExt = '.exe'
           } else if (firstBytes[0] === 0x7F && firstBytes[1] === 0x45 && firstBytes[2] === 0x4C && firstBytes[3] === 0x46) {
             fileExt = '.elf'
           } else if (firstBytes[0] === 0xCA && firstBytes[1] === 0xFE && firstBytes[2] === 0xBA && firstBytes[3] === 0xBE) {
             fileExt = '.class'
-          } else if (firstBytes[0] === 0x50 && firstBytes[1] === 0x4B && firstBytes[2] === 0x05 && firstBytes[3] === 0x06) {
-            fileExt = '.jar'
           } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x50 && firstBytes[2] === 0x4B && firstBytes[3] === 0x53) {
             fileExt = '.apk'
           } else if (firstBytes[0] === 0x64 && firstBytes[1] === 0x65 && firstBytes[2] === 0x78 && firstBytes[3] === 0x0A) {
             fileExt = '.dex'
           } else if (firstBytes[0] === 0x53 && firstBytes[1] === 0x51 && firstBytes[2] === 0x4C && firstBytes[3] === 0x69) {
             fileExt = '.sqlite'
-          } else if (firstBytes[0] === 0x66 && firstBytes[1] === 0x6C && firstBytes[2] === 0x76) {
-            fileExt = '.flv'
-          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x56 && firstBytes[2] === 0x49) {
-            fileExt = '.avi'
-          } else if (firstBytes[0] === 0x30 && firstBytes[1] === 0x26 && firstBytes[2] === 0xB2 && firstBytes[3] === 0x75) {
-            fileExt = '.wmv'
-          } else if (firstBytes[0] === 0x2E && firstBytes[1] === 0x52 && firstBytes[2] === 0x4D && firstBytes[3] === 0x46) {
-            fileExt = '.rm'
-          } else if (firstBytes[0] === 0x38 && firstBytes[1] === 0x42 && firstBytes[2] === 0x50 && firstBytes[3] === 0x53) {
-            fileExt = '.psd'
-          } else if (firstBytes[0] === 0x25 && firstBytes[1] === 0x21 && firstBytes[2] === 0x50 && firstBytes[3] === 0x53) {
-            fileExt = '.ps'
-          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x49) {
-            fileExt = '.ai'
-          } else if (firstBytes[0] === 0x47 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46) {
-            isImage = true
-            fileExt = '.gif'
-          } else if (firstBytes[0] === 0x43 && firstBytes[1] === 0x44 && firstBytes[2] === 0x57 && firstBytes[3] === 0x41) {
-            fileExt = '.cdr'
-          } else if (firstBytes[0] === 0x53 && firstBytes[1] === 0x56) {
-            fileExt = '.svg'
-          } else if (firstBytes[0] === 0x3C && firstBytes[1] === 0x3F && firstBytes[2] === 0x78 && firstBytes[3] === 0x6D && firstBytes[4] === 0x6C) {
-            fileExt = '.xml'
-          } else if (firstBytes[0] === 0x7B && firstBytes[1] === 0x22) {
-            fileExt = '.json'
-          } else if (firstBytes[0] === 0x3C && firstBytes[1] === 0x21) {
-            fileExt = '.html'
-          } else if (firstBytes[0] === 0x3C && firstBytes[1] === 0x68) {
-            fileExt = '.html'
-          } else if (firstBytes[0] === 0x3C && firstBytes[1] === 0x3F && firstBytes[2] === 0x70 && firstBytes[3] === 0x68 && firstBytes[4] === 0x70) {
-            fileExt = '.php'
-          } else if (firstBytes[0] === 0x23 && firstBytes[1] === 0x21) {
-            fileExt = '.sh'
-          } else if (firstBytes[0] === 0x3C && firstBytes[1] === 0x25) {
-            fileExt = '.asp'
-          } else if (firstBytes[0] === 0x4A && firstBytes[1] === 0x41 && firstBytes[2] === 0x56 && firstBytes[3] === 0x41) {
-            fileExt = '.java'
-          } else if (firstBytes[0] === 0x70 && firstBytes[1] === 0x6B && firstBytes[2] === 0x03 && firstBytes[3] === 0x04) {
-            fileExt = '.pptx'
-          } else if (firstBytes[0] === 0x70 && firstBytes[1] === 0x6B && firstBytes[2] === 0x05 && firstBytes[3] === 0x06) {
-            fileExt = '.pptx'
-          } else if (firstBytes[0] === 0xFD && firstBytes[1] === 0x37 && firstBytes[2] === 0x7A && firstBytes[3] === 0x58) {
-            fileExt = '.xz'
-          } else if (firstBytes[0] === 0x42 && firstBytes[1] === 0x5A && firstBytes[2] === 0x68) {
-            fileExt = '.bz2'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x53 && firstBytes[2] === 0x43 && firstBytes[3] === 0x46) {
-            fileExt = '.cab'
           } else if (firstBytes[0] === 0x49 && firstBytes[1] === 0x53 && firstBytes[2] === 0x63 && firstBytes[3] === 0x28) {
             fileExt = '.iso'
           } else if (firstBytes[0] === 0x56 && firstBytes[1] === 0x4D && firstBytes[2] === 0x44 && firstBytes[3] === 0x4B) {
             fileExt = '.vmdk'
-          } else if (firstBytes[0] === 0x43 && firstBytes[1] === 0x52 && firstBytes[2] === 0x41 && firstBytes[3] === 0x47) {
-            fileExt = '.crx'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x4F && firstBytes[2] === 0x56) {
-            fileExt = '.mov'
-          } else if (firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0x00 && firstBytes[3] === 0x00 && firstBytes[4] === 0x66 && firstBytes[5] === 0x74 && firstBytes[6] === 0x79 && firstBytes[7] === 0x70) {
-            fileExt = '.mp4'
-          } else if (firstBytes[0] === 0x1F && firstBytes[1] === 0x8B && firstBytes[2] === 0x08) {
-            fileExt = '.gz'
-          } else if (firstBytes[0] === 0xED && firstBytes[1] === 0xAB && firstBytes[2] === 0xEE && firstBytes[3] === 0xDB) {
-            fileExt = '.rpm'
-          } else if (firstBytes[0] === 0x21 && firstBytes[1] === 0x3C && firstBytes[2] === 0x61 && firstBytes[3] === 0x72 && firstBytes[4] === 0x63 && firstBytes[5] === 0x68 && firstBytes[6] === 0x3E) {
-            fileExt = '.deb'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x53 && firstBytes[2] === 0x57 && firstBytes[3] === 0x49) {
-            fileExt = '.msi'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x5A && firstBytes[2] === 0x90 && firstBytes[3] === 0x00) {
-            fileExt = '.dll'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x50 && firstBytes[2] === 0x51) {
-            fileExt = '.mpq'
-          } else if (firstBytes[0] === 0x50 && firstBytes[1] === 0x4B && firstBytes[2] === 0x07 && firstBytes[3] === 0x08) {
-            fileExt = '.zip'
-          } else if (firstBytes[0] === 0x54 && firstBytes[1] === 0x41 && firstBytes[2] === 0x50 && firstBytes[3] === 0x45) {
-            fileExt = '.tape'
-          } else if (firstBytes[0] === 0x5A && firstBytes[1] === 0x57) {
-            fileExt = '.zw'
+          } else if (firstBytes[0] === 0x43 && firstBytes[1] === 0x44 && firstBytes[2] === 0x57 && firstBytes[3] === 0x41) {
+            fileExt = '.cdr'
+          } else if (firstBytes[0] === 0x38 && firstBytes[1] === 0x42 && firstBytes[2] === 0x50 && firstBytes[3] === 0x53) {
+            fileExt = '.psd'
+          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x49) {
+            fileExt = '.ai'
+          } else if (firstBytes[0] === 0x25 && firstBytes[1] === 0x21 && firstBytes[2] === 0x50 && firstBytes[3] === 0x53) {
+            fileExt = '.eps'
+          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x54 && firstBytes[2] === 0x68 && firstBytes[3] === 0x64) {
+            fileExt = '.mid'
+          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x4D && firstBytes[9] === 0x49 && firstBytes[10] === 0x44 && firstBytes[11] === 0x49) {
+            fileExt = '.mid'
+          } else if (firstBytes[0] === 0x64 && firstBytes[1] === 0x6E && firstBytes[2] === 0x73 && firstBytes[3] === 0x2E) {
+            fileExt = '.dns'
+          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x50 && firstBytes[2] === 0x43) {
+            fileExt = '.mpc'
+          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x54 && firstBytes[2] === 0x6D && firstBytes[3] === 0x64) {
+            fileExt = '.mtd'
+          } else if (firstBytes[0] === 0x43 && firstBytes[1] === 0x52 && firstBytes[2] === 0x54 && firstBytes[3] === 0x42) {
+            fileExt = '.crt'
+          } else if (firstBytes[0] === 0x2D && firstBytes[1] === 0x2D && firstBytes[2] === 0x2D && firstBytes[3] === 0x2D && firstBytes[4] === 0x2D) {
+            fileExt = '.pem'
           }
         } catch {}
+      } else {
+        const urlLower = url.toLowerCase()
+        if (urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg)(\?|$)/)) {
+          isImage = true
+          const extMatch = urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg)/)
+          fileExt = extMatch ? '.' + extMatch[0].slice(1) : '.jpg'
+        } else {
+          const extMatch = urlLower.match(/\.([a-z0-9]+)(\?|$)/)
+          if (extMatch) {
+            fileExt = '.' + extMatch[1]
+          }
+        }
       }
       
       if (isImage) {
