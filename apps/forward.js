@@ -210,15 +210,63 @@ export class XRKBridgeForward extends plugin {
 
         setCooldown(e.user_id);
 
+        const mediaUrls = [];
         const files = [];
+        const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.heic', '.heif', '.avif'];
+        
+        if (e.img && Array.isArray(e.img)) {
+            for (const url of e.img) {
+                if (url) mediaUrls.push(url);
+            }
+        }
+        
+        if (e.video && Array.isArray(e.video)) {
+            for (const url of e.video) {
+                if (url) files.push({ url, name: 'video.mp4' });
+            }
+        }
+        
+        if (e.audio && Array.isArray(e.audio)) {
+            for (const url of e.audio) {
+                if (url) files.push({ url, name: 'audio.amr' });
+            }
+        }
+        
+        if (e.fileList && Array.isArray(e.fileList)) {
+            for (const f of e.fileList) {
+                if (f.url) {
+                    const fileName = f.name || 'file';
+                    const ext = path.extname(fileName).toLowerCase();
+                    if (IMAGE_EXTS.includes(ext)) {
+                        mediaUrls.push(f.url);
+                    } else {
+                        files.push({ url: f.url, name: fileName });
+                    }
+                }
+            }
+        }
+        
         if (e.message) {
             for (const seg of e.message) {
-                const url = seg.url || seg.data?.url;
-                if (!url) continue;
-                if (seg.type === 'image') files.push({ type: 'image', url });
-                else if (seg.type === 'video') files.push({ type: 'video', url });
-                else if (seg.type === 'record') files.push({ type: 'audio', url });
-                else if (seg.type === 'file') files.push({ type: 'file', url, name: seg.name || 'file' });
+                if (!seg?.type) continue;
+                
+                const url = seg.url || seg.file || seg.data?.url || seg.data?.file;
+                
+                if (seg.type === 'image' && url) {
+                    if (!mediaUrls.includes(url)) mediaUrls.push(url);
+                } else if (seg.type === 'video' && url) {
+                    files.push({ url, name: seg.name || 'video.mp4' });
+                } else if (seg.type === 'audio' && url) {
+                    files.push({ url, name: seg.name || 'audio.amr' });
+                } else if (seg.type === 'file' && url) {
+                    const fileName = seg.name || seg.data?.name || 'file';
+                    const ext = path.extname(fileName).toLowerCase();
+                    if (IMAGE_EXTS.includes(ext)) {
+                        if (!mediaUrls.includes(url)) mediaUrls.push(url);
+                    } else {
+                        files.push({ url, name: fileName });
+                    }
+                }
             }
         }
 
@@ -226,12 +274,13 @@ export class XRKBridgeForward extends plugin {
             type: 'message',
             id: e.message_id || Date.now().toString(),
             kind: e.group_id ? 'group' : 'direct',
+            selfId: String(e.self_id),
             userId: String(e.user_id),
-            groupId: e.group_id ? String(e.group_id) : null,
+            groupId: e.group_id ? String(e.group_id) : undefined,
             text: isMaster ? `[主人✓] ${text}` : (isOp ? `[授权] ${text}` : `[用户] ${text}`),
-            files,
+            mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+            files: files.length > 0 ? files : undefined,
             sender: { user_id: String(e.user_id), nickname: e.sender?.nickname || '' },
-            self_id: String(e.self_id),
             isMaster
         };
 

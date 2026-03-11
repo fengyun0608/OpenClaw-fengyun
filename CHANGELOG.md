@@ -1,5 +1,31 @@
 # 更新日志 (CHANGELOG)
 
+## [1.3.0] - 2026-03-12
+
+### 新增
+- **文件发送支持**：完整支持发送各类文件到 QQ
+  - 图片：jpg, png, gif, bmp, webp, ico, tiff, svg
+  - 文档：pdf, doc, docx, pptx, txt, md
+  - 音频：mp3, wav, m4a, ogg, flac, amr
+  - 视频：mp4, mkv, mov, avi, wmv, flv
+  - 压缩：zip, rar, 7z, tar, gz, bz2
+  - 其他：exe, apk, iso, sqlite, json, xml, html, php, sh 等
+- **智能文件类型识别**：通过文件头魔数自动识别文件类型
+- **文件名格式**：`扩展名.扩展名`（如 `pdf.pdf`, `mp3.mp3`）
+
+### 修复
+- **适配器协议兼容**：完全适配 openclaw-xrk-bridger 适配器协议
+  - 支持 `mediaUrls` 字段（图片）
+  - 支持 `files` 字段（其他文件）
+  - 支持 `selfId` 多账号路由
+- **base64 URL 处理**：修复 `base64://` 格式解析问题
+- **群聊限制**：群聊模式只发送文本，跳过媒体/文件发送（适配器不支持）
+
+### 优化
+- **消息分开发送**：文本和媒体分开发送，避免 NTQQ 富媒体传输失败
+- **独立错误处理**：单个文件发送失败不影响其他内容
+- **详细日志**：每个发送操作都有独立日志
+
 ## [1.2.0] - 2025-03-10
 
 ### 新增
