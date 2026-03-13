@@ -1,5 +1,22 @@
 # 更新日志 (CHANGELOG)
 
+## [1.4.0] - 2026-03-14
+
+### 新增
+- **完全适配 openclaw-xrk-bridger 最新协议**
+  - 入站消息格式：`{ type: "message", id, kind, selfId, userId, groupId, text, mediaUrls, files, sender }`
+  - 出站回复格式：`{ type: "reply", id, selfId, to: { kind, userId, groupId, selfId }, text, mediaUrls, files }`
+- **selfId 多账号支持**：支持多机器人账号路由，回复消息时使用正确的机器人
+
+### 优化
+- **简化文件类型识别**：移除冗余的魔数识别代码，保留核心图片格式识别
+- **协议对齐**：与适配器协议完全一致，减少不必要的转换
+- **日志优化**：更清晰的消息收发日志
+
+### 修复
+- 修复群聊文件发送限制问题
+- 修复 selfId 路由问题
+
 ## [1.3.1] - 2026-03-12
 
 ### 新增

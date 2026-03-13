@@ -102,7 +102,7 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
 
   if (!text?.trim() && mediaUrls.length === 0 && files.length === 0) return
 
-  BotUtil.makeLog('info', `[XrkBridge] 流式发送 group=${groupId} user=${userId} selfId=${selfId} text=${text?.slice(0, 50)} mediaUrls=${mediaUrls.length} files=${files.length}`, 'XrkBridge')
+  BotUtil.makeLog('info', `[XrkBridge] 发送回复 kind=${to.kind} group=${groupId} user=${userId} selfId=${selfId} text=${text?.slice(0, 50)} mediaUrls=${mediaUrls.length} files=${files.length}`, 'XrkBridge')
 
   const getTarget = () => {
     if (selfId && Bot.bots[selfId]) {
@@ -118,11 +118,6 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
     if (text && text.trim()) {
       await target.sendMsg([{ type: 'text', data: { text } }])
       BotUtil.makeLog('info', `[XrkBridge] 已发送文本 ${isGroup ? `group=${groupId}` : `user=${userId}`}`, 'XrkBridge')
-    }
-    
-    if (isGroup) {
-      BotUtil.makeLog('info', `[XrkBridge] 群聊模式：跳过媒体/文件发送`, 'XrkBridge')
-      return
     }
     
     for (const url of mediaUrls) {
@@ -152,131 +147,14 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
           } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x57 && firstBytes[9] === 0x45 && firstBytes[10] === 0x42 && firstBytes[11] === 0x50) {
             isImage = true
             fileExt = '.webp'
-          } else if (firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0x01 && firstBytes[3] === 0x00) {
-            isImage = true
-            fileExt = '.ico'
-          } else if ((firstBytes[0] === 0x49 && firstBytes[1] === 0x49 && firstBytes[2] === 0x2A && firstBytes[3] === 0x00) || (firstBytes[0] === 0x4D && firstBytes[1] === 0x4D && firstBytes[2] === 0x00 && firstBytes[3] === 0x2A)) {
-            isImage = true
-            fileExt = '.tiff'
-          } else if (firstBytes[0] === 0x50 && firstBytes[1] === 0x4B && firstBytes[2] === 0x03 && firstBytes[3] === 0x04) {
-            const decoded = Buffer.from(base64Data, 'base64').toString('utf8')
-            if (decoded.includes('ppt/') || decoded.includes('presentation')) {
-              fileExt = '.pptx'
-            } else if (decoded.includes('word/') || decoded.includes('document.xml')) {
-              fileExt = '.docx'
-            } else if (decoded.includes('xl/') || decoded.includes('workbook.xml')) {
-              fileExt = '.xlsx'
-            } else if (decoded.includes('[Content_Types]')) {
-              fileExt = '.pptx'
-            } else {
-              fileExt = '.zip'
-            }
-          } else if (firstBytes[0] === 0x25 && firstBytes[1] === 0x50 && firstBytes[2] === 0x44 && firstBytes[3] === 0x46) {
-            fileExt = '.pdf'
-          } else if (firstBytes[0] === 0xD0 && firstBytes[1] === 0xCF && firstBytes[2] === 0x11 && firstBytes[3] === 0xE0) {
-            fileExt = '.doc'
-          } else if (firstBytes[4] === 0x66 && firstBytes[5] === 0x74 && firstBytes[6] === 0x79 && firstBytes[7] === 0x70) {
-            const ftyp = String.fromCharCode(firstBytes[8], firstBytes[9], firstBytes[10], firstBytes[11])
-            if (ftyp === 'M4A ' || ftyp === 'M4B ' || ftyp === 'fmp4') {
-              fileExt = '.m4a'
-            } else if (ftyp === 'isom' || ftyp === 'mp41' || ftyp === 'mp42' || ftyp === 'avc1') {
-              fileExt = '.mp4'
-            } else if (ftyp === 'MSNV' || ftyp === 'NVMP') {
-              fileExt = '.mp4'
-            } else if (ftyp === 'qt  ') {
-              fileExt = '.mov'
-            } else if (ftyp === '3gp' || ftyp === '3g2') {
-              fileExt = '.3gp'
-            } else {
-              fileExt = '.mp4'
-            }
-          } else if (firstBytes[0] === 0x1A && firstBytes[1] === 0x45 && firstBytes[2] === 0xDF && firstBytes[3] === 0xA3) {
-            fileExt = '.mkv'
-          } else if (firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0x00 && (firstBytes[3] >= 0x14 && firstBytes[3] <= 0x20) && firstBytes[4] === 0x66 && firstBytes[5] === 0x74 && firstBytes[6] === 0x79 && firstBytes[7] === 0x70) {
-            fileExt = '.mp4'
-          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x56 && firstBytes[2] === 0x49) {
-            fileExt = '.avi'
-          } else if (firstBytes[0] === 0x30 && firstBytes[1] === 0x26 && firstBytes[2] === 0xB2 && firstBytes[3] === 0x75) {
-            fileExt = '.wmv'
-          } else if (firstBytes[0] === 0x66 && firstBytes[1] === 0x6C && firstBytes[2] === 0x76) {
-            fileExt = '.flv'
-          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x57 && firstBytes[9] === 0x41 && firstBytes[10] === 0x56 && firstBytes[11] === 0x45) {
-            fileExt = '.wav'
-          } else if (firstBytes[0] === 0x49 && firstBytes[1] === 0x44 && firstBytes[2] === 0x33) {
-            fileExt = '.mp3'
-          } else if ((firstBytes[0] === 0xFF && (firstBytes[1] & 0xE0) === 0xE0)) {
-            fileExt = '.mp3'
-          } else if (firstBytes[0] === 0x4F && firstBytes[1] === 0x67 && firstBytes[2] === 0x67) {
-            fileExt = '.ogg'
-          } else if (firstBytes[0] === 0x66 && firstBytes[1] === 0x4C && firstBytes[2] === 0x61 && firstBytes[3] === 0x43) {
-            fileExt = '.flac'
-          } else if (firstBytes[0] === 0x21 && firstBytes[1] === 0x23 && firstBytes[2] === 0x41 && firstBytes[3] === 0x4D && firstBytes[4] === 0x52) {
-            fileExt = '.amr'
-          } else if (firstBytes[0] === 0xFF && firstBytes[1] === 0xF1 || firstBytes[0] === 0xFF && firstBytes[1] === 0xF9) {
-            fileExt = '.aac'
-          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x61 && firstBytes[2] === 0x72 && firstBytes[3] === 0x21) {
-            fileExt = '.rar'
-          } else if (firstBytes[0] === 0x37 && firstBytes[1] === 0x7A && firstBytes[2] === 0xBC && firstBytes[3] === 0xAF) {
-            fileExt = '.7z'
-          } else if (firstBytes[0] === 0x1F && firstBytes[1] === 0x8B) {
-            fileExt = '.gz'
-          } else if (firstBytes[0] === 0x42 && firstBytes[1] === 0x5A && firstBytes[2] === 0x68) {
-            fileExt = '.bz2'
-          } else if (firstBytes[0] === 0xFD && firstBytes[1] === 0x37 && firstBytes[2] === 0x7A && firstBytes[3] === 0x58 && firstBytes[4] === 0x5A && firstBytes[5] === 0x00) {
-            fileExt = '.xz'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x53 && firstBytes[2] === 0x57 && firstBytes[3] === 0x49 && firstBytes[4] === 0x4D) {
-            fileExt = '.msi'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x5A) {
-            fileExt = '.exe'
-          } else if (firstBytes[0] === 0x7F && firstBytes[1] === 0x45 && firstBytes[2] === 0x4C && firstBytes[3] === 0x46) {
-            fileExt = '.elf'
-          } else if (firstBytes[0] === 0xCA && firstBytes[1] === 0xFE && firstBytes[2] === 0xBA && firstBytes[3] === 0xBE) {
-            fileExt = '.class'
-          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x50 && firstBytes[2] === 0x4B && firstBytes[3] === 0x53) {
-            fileExt = '.apk'
-          } else if (firstBytes[0] === 0x64 && firstBytes[1] === 0x65 && firstBytes[2] === 0x78 && firstBytes[3] === 0x0A) {
-            fileExt = '.dex'
-          } else if (firstBytes[0] === 0x53 && firstBytes[1] === 0x51 && firstBytes[2] === 0x4C && firstBytes[3] === 0x69) {
-            fileExt = '.sqlite'
-          } else if (firstBytes[0] === 0x49 && firstBytes[1] === 0x53 && firstBytes[2] === 0x63 && firstBytes[3] === 0x28) {
-            fileExt = '.iso'
-          } else if (firstBytes[0] === 0x56 && firstBytes[1] === 0x4D && firstBytes[2] === 0x44 && firstBytes[3] === 0x4B) {
-            fileExt = '.vmdk'
-          } else if (firstBytes[0] === 0x43 && firstBytes[1] === 0x44 && firstBytes[2] === 0x57 && firstBytes[3] === 0x41) {
-            fileExt = '.cdr'
-          } else if (firstBytes[0] === 0x38 && firstBytes[1] === 0x42 && firstBytes[2] === 0x50 && firstBytes[3] === 0x53) {
-            fileExt = '.psd'
-          } else if (firstBytes[0] === 0x41 && firstBytes[1] === 0x49) {
-            fileExt = '.ai'
-          } else if (firstBytes[0] === 0x25 && firstBytes[1] === 0x21 && firstBytes[2] === 0x50 && firstBytes[3] === 0x53) {
-            fileExt = '.eps'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x54 && firstBytes[2] === 0x68 && firstBytes[3] === 0x64) {
-            fileExt = '.mid'
-          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x4D && firstBytes[9] === 0x49 && firstBytes[10] === 0x44 && firstBytes[11] === 0x49) {
-            fileExt = '.mid'
-          } else if (firstBytes[0] === 0x64 && firstBytes[1] === 0x6E && firstBytes[2] === 0x73 && firstBytes[3] === 0x2E) {
-            fileExt = '.dns'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x50 && firstBytes[2] === 0x43) {
-            fileExt = '.mpc'
-          } else if (firstBytes[0] === 0x4D && firstBytes[1] === 0x54 && firstBytes[2] === 0x6D && firstBytes[3] === 0x64) {
-            fileExt = '.mtd'
-          } else if (firstBytes[0] === 0x43 && firstBytes[1] === 0x52 && firstBytes[2] === 0x54 && firstBytes[3] === 0x42) {
-            fileExt = '.crt'
-          } else if (firstBytes[0] === 0x2D && firstBytes[1] === 0x2D && firstBytes[2] === 0x2D && firstBytes[3] === 0x2D && firstBytes[4] === 0x2D) {
-            fileExt = '.pem'
           }
         } catch {}
       } else {
         const urlLower = url.toLowerCase()
-        if (urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg)(\?|$)/)) {
+        if (urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg|heic|heif|avif)(\?|$)/)) {
           isImage = true
-          const extMatch = urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg)/)
+          const extMatch = urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg|heic|heif|avif)/)
           fileExt = extMatch ? '.' + extMatch[0].slice(1) : '.jpg'
-        } else {
-          const extMatch = urlLower.match(/\.([a-z0-9]+)(\?|$)/)
-          if (extMatch) {
-            fileExt = '.' + extMatch[1]
-          }
         }
       }
       
@@ -341,9 +219,9 @@ function sendToBridge(payload) {
 async function handleMessage(conn, payload, Bot, clientId) {
   const { type } = payload
 
-  if (type === 'message' || type === 'forward') {
-    const { id, kind, selfId, userId, groupId, text, mediaUrls, files, sender, atBot } = payload
-    BotUtil.makeLog('info', `[XrkBridge] 收到${type}消息 kind=${kind} user=${userId} group=${groupId} text=${text?.slice(0, 50)} mediaUrls=${mediaUrls?.length || 0} files=${files?.length || 0}`, 'XrkBridge')
+  if (type === 'message') {
+    const { id, kind, selfId, userId, groupId, text, mediaUrls, files, sender } = payload
+    BotUtil.makeLog('info', `[XrkBridge] 收到消息 kind=${kind} user=${userId} group=${groupId || 'none'} selfId=${selfId} text=${text?.slice(0, 50)} mediaUrls=${mediaUrls?.length || 0} files=${files?.length || 0}`, 'XrkBridge')
 
     const eventData = {
       id,
@@ -363,7 +241,6 @@ async function handleMessage(conn, payload, Bot, clientId) {
       time: Math.floor(Date.now() / 1000),
       bot: Bot,
       isGroup: kind === 'group',
-      atBot: atBot || false,
       tasker: 'xrk-bridge',
       _clientId: clientId
     }
@@ -371,9 +248,16 @@ async function handleMessage(conn, payload, Bot, clientId) {
     Bot.em(`xrk-bridge.${kind === 'group' ? 'group' : 'private'}`, eventData)
 
   } else if (type === 'reply') {
-    const { to, text, mediaUrls, files } = payload
-    BotUtil.makeLog('info', `[XrkBridge] 收到回复 text=${text?.slice(0, 30)} mediaUrls=${mediaUrls?.length || 0} files=${files?.length || 0}`, 'XrkBridge')
-    await sendReplyToQQ(to, text, mediaUrls || [], files || [])
+    const { id, selfId, to, text, mediaUrls, files } = payload
+    BotUtil.makeLog('info', `[XrkBridge] 收到回复 id=${id} to=${JSON.stringify(to)} text=${text?.slice(0, 30)} mediaUrls=${mediaUrls?.length || 0} files=${files?.length || 0}`, 'XrkBridge')
+    
+    const replyTo = {
+      kind: to.kind,
+      userId: to.userId,
+      groupId: to.groupId,
+      selfId: selfId || to.selfId
+    }
+    await sendReplyToQQ(replyTo, text, mediaUrls || [], files || [])
 
   } else if (type === 'ping') {
     conn.send(JSON.stringify({ type: 'pong' }))
@@ -450,18 +334,27 @@ export default {
       method: 'POST',
       path: '/api/fengyun/send',
       handler: async (req, res, Bot) => {
-        const { userId, groupId, text, kind, mediaUrls, files } = req.body || {}
+        const { userId, groupId, text, kind, mediaUrls, files, selfId } = req.body || {}
         if (!userId || (!text && !mediaUrls?.length && !files?.length)) {
           return res.status(400).json({ success: false, error: '缺少消息内容' })
         }
 
-        const sent = sendToBridge({
+        const replyPayload = {
           type: 'reply',
-          to: { kind: kind || (groupId ? 'group' : 'direct'), userId, groupId },
+          id: Date.now().toString(),
+          selfId,
+          to: { 
+            kind: kind || (groupId ? 'group' : 'direct'), 
+            userId, 
+            groupId,
+            selfId 
+          },
           text,
           mediaUrls,
           files
-        })
+        }
+        
+        const sent = sendToBridge(replyPayload)
         res.json({ success: true, sent })
       }
     }

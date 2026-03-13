@@ -51,6 +51,15 @@ function checkPermission(userId) {
     return checkIsMaster(userId) || checkIsOp(userId);
 }
 
+function isOpenClawConnected() {
+    const connections = Bot._xrkBridgeConnections;
+    if (!connections || connections.size === 0) return false;
+    for (const [, c] of connections) {
+        if (c.ready && c.conn && c.conn.readyState === 1) return true;
+    }
+    return false;
+}
+
 const COOLDOWN_MS = 3000;
 const userCooldown = new Map();
 
@@ -82,6 +91,15 @@ const HELP_TEXT = `📖 XRK-Bridge 帮助
 
 【配置文件】
 data/xrk-bridge-op.json`;
+
+const NOT_CONNECTED_MSG = `❌ 当前 OpenClaw 未连接，请联系管理员处理
+ 
+ ╭─ 状态 ─────────────╮ 
+ │  🟢 XRK-Yunzai: 已就绪                           │ 
+ │  🔴 OpenClaw: 未连接                              │ 
+ │                                                                     │ 
+ │  请检查 OpenClaw 服务是否已启动         │ 
+ ╰─────────────────╯`;
 
 export class XRKBridgeForward extends plugin {
     constructor() {
@@ -190,18 +208,24 @@ export class XRKBridgeForward extends plugin {
 
         if (!isAtBot && !isPrivate) return false;
 
+        if (!checkPermission(e.user_id)) {
+            BotUtil.makeLog('info', `[XRK-Bridge-Forward] 拒绝未授权用户: user=${e.user_id}`, 'XRK-Bridge');
+            await e.reply('⚠️ 你没有权限使用此功能，请联系主人授权\n发送 #op帮助 查看帮助');
+            return true;
+        }
+
+        if (!isOpenClawConnected()) {
+            BotUtil.makeLog('warn', `[XRK-Bridge-Forward] OpenClaw 未连接`, 'XRK-Bridge');
+            await e.reply(NOT_CONNECTED_MSG);
+            return true;
+        }
+
         const sendToBridge = Bot._xrkBridgeSend;
         if (!sendToBridge) return false;
 
         const text = (e.msg || e.raw_message || '').replace(/\[CQ:[^\]]+\]/g, '').trim();
         const isMaster = checkIsMaster(e.user_id);
         const isOp = checkIsOp(e.user_id);
-
-        if (!checkPermission(e.user_id)) {
-            BotUtil.makeLog('info', `[XRK-Bridge-Forward] 拒绝未授权用户: user=${e.user_id}`, 'XRK-Bridge');
-            await e.reply('⚠️ 你没有权限使用此功能，请联系主人授权\n发送 #op帮助 查看帮助');
-            return true;
-        }
 
         if (isOnCooldown(e.user_id)) {
             BotUtil.makeLog('debug', `[XRK-Bridge-Forward] 冷却中: user=${e.user_id}`, 'XRK-Bridge');
