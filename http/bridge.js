@@ -84,6 +84,36 @@ function shouldFilterMessage(text) {
   return ERROR_PATTERNS.some(pattern => pattern.test(text))
 }
 
+function getFileExtensionFromBase64(base64Data) {
+  try {
+    const firstBytes = Buffer.from(base64Data.slice(0, 16), 'base64');
+    
+    // 图片类型
+    if (firstBytes[0] === 0xFF && firstBytes[1] === 0xD8) return '.jpg';
+    if (firstBytes[0] === 0x89 && firstBytes[1] === 0x50 && firstBytes[2] === 0x4E && firstBytes[3] === 0x47) return '.png';
+    if (firstBytes[0] === 0x47 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46) return '.gif';
+    if (firstBytes[0] === 0x42 && firstBytes[1] === 0x4D) return '.bmp';
+    if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x57 && firstBytes[9] === 0x45 && firstBytes[10] === 0x42 && firstBytes[11] === 0x50) return '.webp';
+    
+    // 文档类型
+    if (firstBytes[0] === 0x50 && firstBytes[1] === 0x4B) {
+      // ZIP 格式（包括 docx, xlsx, pptx 等）
+      if (firstBytes[2] === 0x03 && firstBytes[3] === 0x04) {
+        // 尝试从文件名推断具体类型
+        return '.zip';
+      }
+    }
+    
+    // PDF
+    if (firstBytes[0] === 0x25 && firstBytes[1] === 0x50 && firstBytes[2] === 0x44 && firstBytes[3] === 0x46) return '.pdf';
+    
+    // 文本文件
+    if (firstBytes[0] === 0xEF && firstBytes[1] === 0xBB && firstBytes[2] === 0xBF) return '.txt'; // UTF-8 BOM
+    
+  } catch {}
+  return '.bin';
+}
+
 async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
   if (shouldFilterMessage(text)) {
     BotUtil.makeLog('debug', `[XrkBridge] 过滤错误消息: ${text?.slice(0, 50)}`, 'XrkBridge')
@@ -130,24 +160,11 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
       if (isBase64) {
         try {
           const base64Data = url.replace(/^base64:\/\//i, '')
-          const firstBytes = Buffer.from(base64Data.slice(0, 16), 'base64')
+          fileExt = getFileExtensionFromBase64(base64Data)
           
-          if (firstBytes[0] === 0xFF && firstBytes[1] === 0xD8) {
-            isImage = true
-            fileExt = '.jpg'
-          } else if (firstBytes[0] === 0x89 && firstBytes[1] === 0x50 && firstBytes[2] === 0x4E && firstBytes[3] === 0x47) {
-            isImage = true
-            fileExt = '.png'
-          } else if (firstBytes[0] === 0x47 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46) {
-            isImage = true
-            fileExt = '.gif'
-          } else if (firstBytes[0] === 0x42 && firstBytes[1] === 0x4D) {
-            isImage = true
-            fileExt = '.bmp'
-          } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46 && firstBytes[8] === 0x57 && firstBytes[9] === 0x45 && firstBytes[10] === 0x42 && firstBytes[11] === 0x50) {
-            isImage = true
-            fileExt = '.webp'
-          }
+          // 检查是否为图片类型
+          const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+          isImage = imageExts.includes(fileExt)
         } catch {}
       } else {
         const urlLower = url.toLowerCase()
@@ -155,6 +172,9 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
           isImage = true
           const extMatch = urlLower.match(/\.(jpg|jpeg|png|gif|bmp|webp|ico|tiff?|svg|heic|heif|avif)/)
           fileExt = extMatch ? '.' + extMatch[0].slice(1) : '.jpg'
+        } else if (urlLower.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|txt|md|js|json|html|css)(\?|$)/)) {
+          const extMatch = urlLower.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|txt|md|js|json|html|css)/)
+          fileExt = extMatch ? '.' + extMatch[0].slice(1) : '.bin'
         }
       }
       
@@ -167,7 +187,7 @@ async function sendReplyToQQ(to, text, mediaUrls = [], files = []) {
         }
       } else {
         const extName = fileExt.replace('.', '')
-        const fileName = `${extName}${fileExt}`
+        const fileName = `file_${Date.now()}${fileExt}`
         try {
           await target.sendMsg([{ type: 'file', data: { file: url, name: fileName } }])
           BotUtil.makeLog('info', `[XrkBridge] 已发送文件: ${fileName}`, 'XrkBridge')

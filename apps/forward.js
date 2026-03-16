@@ -209,9 +209,8 @@ export class XRKBridgeForward extends plugin {
         if (!isAtBot && !isPrivate) return false;
 
         if (!checkPermission(e.user_id)) {
-            BotUtil.makeLog('info', `[XRK-Bridge-Forward] 拒绝未授权用户: user=${e.user_id}`, 'XRK-Bridge');
-            await e.reply('⚠️ 你没有权限使用此功能，请联系主人授权\n发送 #op帮助 查看帮助');
-            return true;
+            BotUtil.makeLog('info', `[XRK-Bridge-Forward] 非授权用户，跳过处理: user=${e.user_id}`, 'XRK-Bridge');
+            return false;
         }
 
         if (!isOpenClawConnected()) {
